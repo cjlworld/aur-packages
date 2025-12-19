@@ -14,6 +14,7 @@
 # subfolders, e.g. source or built package trees, vcs
 */**/
 !.github/
+!.github/**
 
 # backup files
 *~
