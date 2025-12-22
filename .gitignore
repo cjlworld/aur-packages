@@ -22,3 +22,9 @@
 
 # mkpkg status files, from soyuz.archlinux.org
 .mkpkg_check
+
+# package src/pkg archives, downloaded sources
+*.deb
+*.rpm
+*.dsc
+LICENSE-*
