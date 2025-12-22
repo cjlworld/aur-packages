@@ -1,9 +1,9 @@
 # Maintainer: marinara2025 <cjlworld@outlook.com>
 pkgname=biu-bin
 _pkgname=biu
-_realver=1.6.1 # renovate: datasource=github-tags depName=wood3n/biu
+_realver=1.7.0 # renovate: datasource=github-tags depName=wood3n/biu
 pkgver="${_realver//-/_}"
-pkgrel=5
+pkgrel=1
 pkgdesc="A cross-platform desktop music player based on Bilibili API"
 arch=('x86_64')
 url="https://github.com/wood3n/biu"

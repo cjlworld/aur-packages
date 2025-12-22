@@ -26,13 +26,14 @@ updpkgsums
 git diff PKGBUILD
 echo "::endgroup::"
 
-echo "::group::Installing depends using paru"
-source PKGBUILD
-paru -Syu --removemake --needed --noconfirm "${depends[@]}" "${makedepends[@]}"
+echo "::group::Resetting pkgrel to 1"
+sed -i -E 's/^\s*pkgrel\s*=.*/pkgrel=1/' PKGBUILD
+echo "pkgrel has been reset to 1 in PKGBUILD."
+git diff PKGBUILD
 echo "::endgroup::"
 
-echo "::group::Running makepkg"
-makepkg
+echo "::group::Running makepkg and installing dependencies"
+makepkg -s --noconfirm
 echo "::endgroup::"
 
 echo "::group::Generating new .SRCINFO based on PKGBUILD"

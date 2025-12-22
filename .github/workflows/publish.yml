@@ -1,35 +1,92 @@
 name: publish
 
 on:
+  # 触发条件一：自动触发
+  # 当有 .SRCINFO 文件被推送到 main 分支时
   push:
     branches:
       - main
     paths:
-      - '*/PKGBUILD'
+      - '*/.SRCINFO'  # <--- 改回这里，监听 .SRCINFO 的变化
+
+  # 触发条件二：手动触发
   workflow_dispatch:
+    inputs:
+      pkgname:
+        description: 'The name of the package to publish (e.g., biu-bin). Leave blank for auto-detection on push.'
+        required: false
+        type: string
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@v4
         with:
+          # fetch-depth: 0 是 git diff HEAD HEAD~1 所必需的
           fetch-depth: 0
 
-      - name: Find updated package
+      - name: Determine package to publish
+        id: find_pkg
         run: |
           #!/usr/bin/env bash
-          set -euxo pipefail
+          set -euo pipefail
 
-          echo "pkgbuild=$(git diff --name-only HEAD HEAD~1 "*/.SRCINFO" | head -1 | xargs dirname)" >> $GITHUB_ENV
+          if [ -n "${{ inputs.pkgname }}" ]; then
+            echo "Manually triggered for package: ${{ inputs.pkgname }}"
+            echo "pkgbuild=${{ inputs.pkgname }}" >> $GITHUB_OUTPUT
+          else
+            echo "Auto-detecting package from git diff..."
+            echo "pkgbuild=$(git diff --name-only HEAD HEAD~1 "*/.SRCINFO" | head -1 | xargs dirname)" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Verify versions match between PKGBUILD and .SRCINFO
+        # 仅当 pkgbuild 变量不为空时才执行
+        if: steps.find_pkg.outputs.pkgbuild != ''
+        run: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          PKG_DIR="${{ steps.find_pkg.outputs.pkgbuild }}"
+          echo "Verifying versions in directory: $PKG_DIR"
+
+          # 从 PKGBUILD 中安全地获取变量
+          source "$PKG_DIR/PKGBUILD"
+          
+          # 从 .SRCINFO 中提取变量
+          # 使用 grep 和 awk, 并处理可能存在的空格
+          srcinfo_ver=$(grep -E "^\s*pkgver\s*=" "$PKG_DIR/.SRCINFO" | awk -F'=' '{print $2}' | xargs)
+          srcinfo_rel=$(grep -E "^\s*pkgrel\s*=" "$PKG_DIR/.SRCINFO" | awk -F'=' '{print $2}' | xargs)
+
+          # 检查变量是否成功提取
+          if [ -z "$pkgver" ] || [ -z "$pkgrel" ] || [ -z "$srcinfo_ver" ] || [ -z "$srcinfo_rel" ]; then
+            echo "::error::Could not extract version information from one or both files."
+            exit 1
+          fi
+
+          echo "PKGBUILD version: $pkgver-$pkgrel"
+          echo ".SRCINFO version: $srcinfo_ver-$srcinfo_rel"
+
+          # 比较版本和修订号
+          if [[ "$pkgver" != "$srcinfo_ver" ]] || [[ "$pkgrel" != "$srcinfo_rel" ]]; then
+            echo "::error::Version mismatch detected!"
+            echo "PKGBUILD has: pkgver=$pkgver, pkgrel=$pkgrel"
+            echo ".SRCINFO has: pkgver=$srcinfo_ver, pkgrel=$srcinfo_rel"
+            echo "Please run 'makepkg --printsrcinfo > .SRCINFO' in '$PKG_DIR' and commit the changes."
+            exit 1
+          else
+            echo "✅ Versions match. Proceeding to publish."
+          fi
 
       - name: Publish package
-        uses: KSXGitHub/github-actions-deploy-aur@2ac5a4c1d7035885d46b10e3193393be8460b6f1 # v4.1.1
-        if: ${{ env.pkgbuild != '' }}
+        # 仅当 pkgbuild 变量不为空时才执行
+        if: steps.find_pkg.outputs.pkgbuild != ''
+        uses: KSXGitHub/github-actions-deploy-aur@v4.1.1
         with:
-          pkgname: ${{ env.pkgbuild }}
-          pkgbuild: ${{ env.pkgbuild }}/PKGBUILD
+          # 使用上一步的输出
+          pkgname: ${{ steps.find_pkg.outputs.pkgbuild }}
+          pkgbuild: ${{ steps.find_pkg.outputs.pkgbuild }}/PKGBUILD
           commit_username: ${{ secrets.AUR_USERNAME }}
           commit_email: ${{ secrets.AUR_EMAIL }}
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
