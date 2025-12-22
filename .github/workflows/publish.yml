@@ -82,7 +82,7 @@ jobs:
       - name: Publish package
         # 仅当 pkgbuild 变量不为空时才执行
         if: steps.find_pkg.outputs.pkgbuild != ''
-        uses: KSXGitHub/github-actions-deploy-aur@v4.1.1
+        uses: KSXGitHub/github-actions-deploy-aur@2ac5a4c1d7035885d46b10e3193393be8460b6f1 # v4.1.1
         with:
           # 使用上一步的输出
           pkgname: ${{ steps.find_pkg.outputs.pkgbuild }}
