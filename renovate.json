@@ -18,5 +18,7 @@
       ],
       "extractVersionTemplate": "^v?(?<version>.*)$"
     }
-  ]
+  ],
+  "automerge": true,
+  "automergeType": "pr"
 }
