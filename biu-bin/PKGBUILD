@@ -20,7 +20,7 @@ source=(
     "LICENSE-${pkgver}::https://raw.githubusercontent.com/wood3n/biu/v${_realver}/LICENSE"
 )
 
-sha256sums=('4239e429311888f1ad59dae86e1ba042c9a575a1035f8e5d7b2d20f58e70a947'
+sha256sums=('95c873c0a56ad9c027502ccc26751ead9e281681d0afcf6ab020c396a28547f9'
             'b63003add694097450c9719baa1587f522f4c72a5714aae3d2cbd78efe3c0e0d')
 
 package() {
